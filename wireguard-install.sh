@@ -58,9 +58,9 @@ C_PROMPT='\033[36m'
 C_TITLE='\033[1;35m'
 C_RESET='\033[0m'
 
-msg()  { echo -e "${C_INFO}[*]${C_RESET} $*"; }
+msg() { echo -e "${C_INFO}[*]${C_RESET} $*"; }
 warn() { echo -e "${C_WARN}[!]${C_RESET} $*"; }
-err()  { echo -e "${C_ERR}[x]${C_RESET} $*" >&2; }
+err() { echo -e "${C_ERR}[x]${C_RESET} $*" >&2; }
 
 # Prompts the user with a cyan-colored question and stores the answer in
 # the variable named by $1 (used instead of plain `read -rp` everywhere).
@@ -103,18 +103,23 @@ WG_SERVER_PUB="${WG_SERVER_PUB}"
 WG_CLIENTS="${WG_CLIENTS}"
 EOF
     tail -n "+${end_line}" "$SCRIPT_PATH"
-  } > "$tmp"
+  } >"$tmp"
 
   mv "$tmp" "$SCRIPT_PATH"
   chmod 700 "$SCRIPT_PATH"
 }
 
 detect_pkg_mgr() {
-  if command -v apt-get &>/dev/null; then echo apt
-  elif command -v dnf &>/dev/null; then echo dnf
-  elif command -v yum &>/dev/null; then echo yum
-  elif command -v pacman &>/dev/null; then echo pacman
-  else echo unknown
+  if command -v apt-get &>/dev/null; then
+    echo apt
+  elif command -v dnf &>/dev/null; then
+    echo dnf
+  elif command -v yum &>/dev/null; then
+    echo yum
+  elif command -v pacman &>/dev/null; then
+    echo pacman
+  else
+    echo unknown
   fi
 }
 
@@ -174,14 +179,14 @@ select_pub_iface() {
     printf "%2d) %-12s %s\n" "$__count" "$__ifname" "${__ip4:-no IPv4}"
   done < <(ip -o link show up)
 
-  if (( __count == 0 )); then
+  if ((__count == 0)); then
     err "No active network interfaces found."
     return 1
   fi
 
   local __choice
   ask __choice "Choose the internet-facing interface number: "
-  if ! [[ "$__choice" =~ ^[0-9]+$ ]] || (( __choice < 1 || __choice > __count )); then
+  if ! [[ "$__choice" =~ ^[0-9]+$ ]] || ((__choice < 1 || __choice > __count)); then
     err "Invalid selection."
     return 1
   fi
@@ -213,9 +218,9 @@ write_server_conf() {
         echo "AllowedIPs = ${ip}/32"
         echo "PersistentKeepalive = ${KEEPALIVE}"
         echo
-      done <<< "$WG_CLIENTS"
+      done <<<"$WG_CLIENTS"
     fi
-  } > "$WG_CONF"
+  } >"$WG_CONF"
   chmod 600 "$WG_CONF"
 
   write_client_files
@@ -232,7 +237,7 @@ write_client_files() {
   while IFS=';' read -r name ip priv pub psk; do
     [[ -z "$name" ]] && continue
     local client_file="${CLIENTS_DIR}/${name}.conf"
-    cat > "$client_file" <<EOF
+    cat >"$client_file" <<EOF
 [Interface]
 PrivateKey = ${priv}
 Address = ${ip}/32
@@ -247,7 +252,7 @@ AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = ${KEEPALIVE}
 EOF
     chmod 600 "$client_file"
-  done <<< "$WG_CLIENTS"
+  done <<<"$WG_CLIENTS"
 }
 
 apply_conf() {
@@ -259,7 +264,7 @@ apply_conf() {
 }
 
 enable_forwarding() {
-  echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-wireguard.conf
+  echo "net.ipv4.ip_forward=1" >/etc/sysctl.d/99-wireguard.conf
   sysctl --system >/dev/null
 }
 
@@ -313,7 +318,7 @@ next_free_ip() {
   local used i
   used=$(echo "$WG_CLIENTS" | cut -d';' -f2 | sed "s/^${SUBNET_PREFIX}\.//")
   for i in $(seq 2 254); do
-    if ! grep -qx "$i" <<< "$used"; then
+    if ! grep -qx "$i" <<<"$used"; then
       echo "${SUBNET_PREFIX}.${i}"
       return
     fi
@@ -324,7 +329,7 @@ next_free_ip() {
 
 client_exists() {
   local name="$1"
-  grep -qF "${name};" <<< "$WG_CLIENTS"
+  grep -qF "${name};" <<<"$WG_CLIENTS"
 }
 
 add_client() {
@@ -365,7 +370,7 @@ ${new_line}"
   msg "Device '${name}' added with address ${ip}"
   echo "Config file: ${client_file}"
   if command -v qrencode &>/dev/null; then
-    qrencode -t ansiutf8 < "$client_file"
+    qrencode -t ansiutf8 <"$client_file"
   fi
 }
 
@@ -380,7 +385,7 @@ remove_client() {
     return
   fi
 
-  WG_CLIENTS=$(grep -vF "${name};" <<< "$WG_CLIENTS")
+  WG_CLIENTS=$(grep -vF "${name};" <<<"$WG_CLIENTS")
 
   save_state
   rm -f "${CLIENTS_DIR}/${name}.conf" "${CLIENTS_DIR}/${name}.png"
@@ -400,7 +405,7 @@ list_clients() {
   while IFS=';' read -r name ip _ _ _; do
     [[ -z "$name" ]] && continue
     printf "%-20s %s\n" "$name" "$ip"
-  done <<< "$WG_CLIENTS"
+  done <<<"$WG_CLIENTS"
 }
 
 # Prints a numbered list of devices and stores the chosen device's name in
@@ -421,11 +426,11 @@ select_client() {
     __count=$((__count + 1))
     __names+=("$__cn")
     printf "%2d) %-20s %s\n" "$__count" "$__cn" "$__cip"
-  done <<< "$WG_CLIENTS"
+  done <<<"$WG_CLIENTS"
 
   local __choice
   ask __choice "Choose a device number: "
-  if ! [[ "$__choice" =~ ^[0-9]+$ ]] || (( __choice < 1 || __choice > __count )); then
+  if ! [[ "$__choice" =~ ^[0-9]+$ ]] || ((__choice < 1 || __choice > __count)); then
     err "Invalid selection."
     return 1
   fi
@@ -450,7 +455,7 @@ show_client_details() {
   echo -e "${C_TITLE}--------------------------${C_RESET}"
 
   if command -v qrencode &>/dev/null; then
-    qrencode -t ansiutf8 < "$f"
+    qrencode -t ansiutf8 <"$f"
   else
     warn "qrencode is not installed — only the text config is shown above."
   fi
