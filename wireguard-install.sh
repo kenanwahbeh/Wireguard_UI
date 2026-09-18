@@ -8,7 +8,8 @@
 #           if you want a different VPN subnet.
 # Port:     22 by default (often left open on firewalls; change at install
 #           time if you prefer the conventional 51820).
-# Keepalive: 25s | MTU: 1420 (better for slow/unstable links)
+# Keepalive: 25s | MTU: 1420 by default (asked at install time — lower it
+#           further, e.g. 1280, on very unstable/slow links).
 #
 # This script stores ALL its state (server keys, public IP/iface/port, and
 # every client's keys) INSIDE ITSELF, between the WG_STATE markers below.
@@ -26,6 +27,7 @@
 WG_PUB_IFACE=""
 WG_PUB_IP=""
 WG_PORT=""
+WG_MTU=""
 WG_SERVER_PRIV=""
 WG_SERVER_PUB=""
 WG_CLIENTS=""
@@ -41,7 +43,7 @@ CLIENTS_DIR="${WG_DIR}/clients"
 SUBNET_PREFIX="10.66.66"
 SERVER_IP="${SUBNET_PREFIX}.1"
 KEEPALIVE=25
-MTU=1420
+DEFAULT_MTU=1420
 
 STATE_START="# >>> WG_STATE_START >>>"
 STATE_END="# <<< WG_STATE_END <<<"
@@ -95,6 +97,7 @@ save_state() {
 WG_PUB_IFACE="${WG_PUB_IFACE}"
 WG_PUB_IP="${WG_PUB_IP}"
 WG_PORT="${WG_PORT}"
+WG_MTU="${WG_MTU}"
 WG_SERVER_PRIV="${WG_SERVER_PRIV}"
 WG_SERVER_PUB="${WG_SERVER_PUB}"
 WG_CLIENTS="${WG_CLIENTS}"
@@ -194,7 +197,7 @@ write_server_conf() {
     echo "Address = ${SERVER_IP}/24"
     echo "ListenPort = ${WG_PORT}"
     echo "PrivateKey = ${WG_SERVER_PRIV}"
-    echo "MTU = ${MTU}"
+    echo "MTU = ${WG_MTU}"
     echo "PostUp = iptables -A FORWARD -i ${IFACE} -j ACCEPT; iptables -A FORWARD -o ${IFACE} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${WG_PUB_IFACE} -j MASQUERADE"
     echo "PostDown = iptables -D FORWARD -i ${IFACE} -j ACCEPT; iptables -D FORWARD -o ${IFACE} -j ACCEPT; iptables -t nat -D POSTROUTING -o ${WG_PUB_IFACE} -j MASQUERADE"
     echo
@@ -234,7 +237,7 @@ write_client_files() {
 PrivateKey = ${priv}
 Address = ${ip}/32
 DNS = 1.1.1.1, 8.8.8.8
-MTU = ${MTU}
+MTU = ${WG_MTU}
 
 [Peer]
 PublicKey = ${WG_SERVER_PUB}
@@ -288,6 +291,9 @@ install_server() {
 
   ask input "WireGuard port [22]: "
   WG_PORT="${input:-22}"
+
+  ask input "MTU [${DEFAULT_MTU}]: "
+  WG_MTU="${input:-$DEFAULT_MTU}"
 
   WG_SERVER_PRIV=$(wg genkey)
   WG_SERVER_PUB=$(echo "$WG_SERVER_PRIV" | wg pubkey)
@@ -470,6 +476,7 @@ uninstall_server() {
     WG_PUB_IFACE=""
     WG_PUB_IP=""
     WG_PORT=""
+    WG_MTU=""
     WG_SERVER_PRIV=""
     WG_SERVER_PUB=""
     WG_CLIENTS=""
