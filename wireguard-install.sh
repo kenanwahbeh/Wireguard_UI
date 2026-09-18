@@ -504,7 +504,15 @@ show_menu() {
   esac
 }
 
+print_banner() {
+  local line="════════════════════════════════════════"
+  echo -e "\033[1m${line}\033[0m"
+  echo -e "\033[1m          Byte Balance Technology          \033[0m"
+  echo -e "\033[1m${line}\033[0m"
+}
+
 main() {
+  print_banner
   require_root
   chmod 700 "$SCRIPT_PATH" 2>/dev/null || true
 
