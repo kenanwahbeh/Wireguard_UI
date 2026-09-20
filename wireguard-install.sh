@@ -19,6 +19,10 @@
 # To move your setup to another machine or restore after a reinstall, just
 # copy THIS FILE (it already contains everything) and run it there.
 #
+# Install also asks whether you want a web interface (default: no). This
+# only records your preference (host/port and an email to request
+# activation) inside the state block below — no web server is started yet.
+#
 # WARNING: once installed, private keys live inside this file — keep it
 # root-only (the script enforces chmod 700 on itself automatically) and
 # never share it after it has real keys in the state block below.
@@ -28,6 +32,10 @@ WG_PUB_IFACE=""
 WG_PUB_IP=""
 WG_PORT=""
 WG_MTU=""
+WG_WEBUI_ENABLED=""
+WG_WEBUI_HOST=""
+WG_WEBUI_PORT=""
+WG_WEBUI_EMAIL=""
 WG_SERVER_PRIV=""
 WG_SERVER_PUB=""
 WG_CLIENTS=""
@@ -98,6 +106,10 @@ WG_PUB_IFACE="${WG_PUB_IFACE}"
 WG_PUB_IP="${WG_PUB_IP}"
 WG_PORT="${WG_PORT}"
 WG_MTU="${WG_MTU}"
+WG_WEBUI_ENABLED="${WG_WEBUI_ENABLED}"
+WG_WEBUI_HOST="${WG_WEBUI_HOST}"
+WG_WEBUI_PORT="${WG_WEBUI_PORT}"
+WG_WEBUI_EMAIL="${WG_WEBUI_EMAIL}"
 WG_SERVER_PRIV="${WG_SERVER_PRIV}"
 WG_SERVER_PUB="${WG_SERVER_PUB}"
 WG_CLIENTS="${WG_CLIENTS}"
@@ -300,6 +312,36 @@ install_server() {
   ask input "MTU [${DEFAULT_MTU}]: "
   WG_MTU="${input:-$DEFAULT_MTU}"
 
+  ask input "Do you want a web interface? [y/N]: "
+  if [[ "$input" =~ ^[Yy]$ ]]; then
+    ask input "Use it locally on 127.0.0.1? [Y/n]: "
+    if [[ "$input" =~ ^[Nn]$ ]]; then
+      ask input "Web interface host or IP: "
+      WG_WEBUI_HOST="$input"
+    else
+      WG_WEBUI_HOST="127.0.0.1"
+    fi
+
+    ask input "Web interface port: "
+    WG_WEBUI_PORT="$input"
+
+    ask input "Email address to request activation: "
+    WG_WEBUI_EMAIL="$input"
+
+    if [[ -n "$WG_WEBUI_HOST" && -n "$WG_WEBUI_PORT" && -n "$WG_WEBUI_EMAIL" ]]; then
+      WG_WEBUI_ENABLED="yes"
+      msg "The web interface isn't available yet — your activation request for ${WG_WEBUI_EMAIL} (${WG_WEBUI_HOST}:${WG_WEBUI_PORT}) has been recorded. We'll be in touch once it's ready."
+    else
+      warn "Incomplete web interface details — skipping for now. You can add this later."
+      WG_WEBUI_ENABLED="no"
+      WG_WEBUI_HOST=""
+      WG_WEBUI_PORT=""
+      WG_WEBUI_EMAIL=""
+    fi
+  else
+    WG_WEBUI_ENABLED="no"
+  fi
+
   WG_SERVER_PRIV=$(wg genkey)
   WG_SERVER_PUB=$(echo "$WG_SERVER_PRIV" | wg pubkey)
 
@@ -482,6 +524,10 @@ uninstall_server() {
     WG_PUB_IP=""
     WG_PORT=""
     WG_MTU=""
+    WG_WEBUI_ENABLED=""
+    WG_WEBUI_HOST=""
+    WG_WEBUI_PORT=""
+    WG_WEBUI_EMAIL=""
     WG_SERVER_PRIV=""
     WG_SERVER_PUB=""
     WG_CLIENTS=""
