@@ -20,8 +20,8 @@
 # copy THIS FILE (it already contains everything) and run it there.
 #
 # Install also asks whether you want a web interface (default: no). This
-# only records your preference (host/port and an email to request
-# activation) inside the state block below — no web server is started yet.
+# only records your preference (host/port and an email) inside the state
+# block below — no web server is started and no request is sent yet.
 #
 # WARNING: once installed, private keys live inside this file — keep it
 # root-only (the script enforces chmod 700 on itself automatically) and
@@ -106,10 +106,13 @@ WG_PUB_IFACE="${WG_PUB_IFACE}"
 WG_PUB_IP="${WG_PUB_IP}"
 WG_PORT="${WG_PORT}"
 WG_MTU="${WG_MTU}"
-WG_WEBUI_ENABLED="${WG_WEBUI_ENABLED}"
-WG_WEBUI_HOST="${WG_WEBUI_HOST}"
-WG_WEBUI_PORT="${WG_WEBUI_PORT}"
-WG_WEBUI_EMAIL="${WG_WEBUI_EMAIL}"
+EOF
+    # User-typed values: %q escapes them so the state block stays safe to source.
+    printf 'WG_WEBUI_ENABLED=%q\n' "$WG_WEBUI_ENABLED"
+    printf 'WG_WEBUI_HOST=%q\n' "$WG_WEBUI_HOST"
+    printf 'WG_WEBUI_PORT=%q\n' "$WG_WEBUI_PORT"
+    printf 'WG_WEBUI_EMAIL=%q\n' "$WG_WEBUI_EMAIL"
+    cat <<EOF
 WG_SERVER_PRIV="${WG_SERVER_PRIV}"
 WG_SERVER_PUB="${WG_SERVER_PUB}"
 WG_CLIENTS="${WG_CLIENTS}"
@@ -280,6 +283,8 @@ enable_forwarding() {
   sysctl --system >/dev/null
 }
 
+# First-run setup: installs WireGuard, asks for interface, port, MTU and the
+# optional web interface preference, generates server keys and saves state.
 install_server() {
   install_packages
 
@@ -330,7 +335,7 @@ install_server() {
 
     if [[ -n "$WG_WEBUI_HOST" && -n "$WG_WEBUI_PORT" && -n "$WG_WEBUI_EMAIL" ]]; then
       WG_WEBUI_ENABLED="yes"
-      msg "The web interface isn't available yet — your activation request for ${WG_WEBUI_EMAIL} (${WG_WEBUI_HOST}:${WG_WEBUI_PORT}) has been recorded. We'll be in touch once it's ready."
+      msg "The web interface isn't available yet. Your details (${WG_WEBUI_EMAIL}, ${WG_WEBUI_HOST}:${WG_WEBUI_PORT}) were saved locally in this script only — no activation request or email was sent."
     else
       warn "Incomplete web interface details — skipping for now. You can add this later."
       WG_WEBUI_ENABLED="no"
