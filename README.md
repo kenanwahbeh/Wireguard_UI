@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Byte Balance Technology logo" width="480">
+</p>
+
 # **Byte Balance Technology**
 
 # Wireguard_UI
@@ -32,6 +36,16 @@ that opens a management menu to add/remove devices or view their config.
 > **Warning:** once installed, this file contains your server's and
 > devices' private keys. Keep it root-only (the script sets `chmod 700`
 > on itself automatically) and never share it publicly.
+
+## Sponsor
+
+If this project is useful to you, you can support its development through
+Binance Pay: open the Binance app, scan the QR code below, or search for
+the nickname **Kinan125**.
+
+<p align="center">
+  <img src="assets/binance.jpg" alt="Binance Pay QR code - Kinan125" width="280">
+</p>
 
 ## License
 
